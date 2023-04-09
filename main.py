@@ -2,117 +2,61 @@ import sympy
 
 x, y, z = sympy.symbols('x y z')
 
+symbols = [z, y, x]
+
+
+def general_division_remainder(G, s):
+    k = 0
+    result = s
+    for f in G:
+        for symbol in symbols:
+            quo = sympy.quo(sympy.LT(result, symbol), sympy.LT(f, symbol))
+            while quo != 0:
+                result = result - quo * f
+                quo = sympy.quo(sympy.LT(result, symbol), sympy.LT(f, symbol))
+    return result
+
 
 def s_poly(poly_first, poly_second):
     lt_f = sympy.LT(poly_first)
     lt_s = sympy.LT(poly_second)
-    #print(sympy.lcm(lt_f, lt_s))
-    return sympy.Poly(sympy.lcm(lt_f, lt_s) * ((poly_first/lt_f)-(poly_second/lt_s)))
+    return sympy.Poly(sympy.lcm(lt_f, lt_s) * ((poly_first / lt_f) - (poly_second / lt_s)), [z, y, x])
 
 
-# def largest_term(f):
-#     poly = f.as_poly(x, y, z)
-#     monomials = poly.monoms()
-#     highest_degree_monomial = max(monomials, key=lambda monomial: sum(monomial))
-#     coeff_of_highest_term = poly.coeff_monomial(highest_degree_monomial)
-#     return coeff_of_highest_term*x**highest_degree_monomial[0]*y**highest_degree_monomial[1]*z**highest_degree_monomial[2]
+def groebner_basis(G):
+    step = 0
+    U = []
 
-def largest_term(f):
-    poly = f.as_poly(x, y, z)
-    monomials = poly.monoms()
-    highest_degree_monomial = max(monomials, key=lambda monomial: sum(monomial))
-    coeff_of_highest_term = poly.coeff_monomial(highest_degree_monomial)
-    return coeff_of_highest_term * x ** highest_degree_monomial[0] * y ** highest_degree_monomial[1] * z ** \
-        highest_degree_monomial[2]
+    for i in range(0, len(G)):
+        for j in range(0, len(G)):
+            if i != j:
+                U.append((G[i], G[j]))
 
-
-# def largest_term(f, s):
-#     poly = f.as_poly(s)
-#     monomials = poly.monoms()
-#     for i in range(len(monomials)):
-#         highest_degree_monomial = 1
-#     coeff_of_highest_term = poly.coeff_monomial(highest_degree_monomial)
-#     return coeff_of_highest_term*x**highest_degree_monomial[0]*y**highest_degree_monomial[1]*z**highest_degree_monomial[2]
-
-# def general_divide2(f, gs):
-#     h = f
-#     qs = [0] * len(gs)
-#     for i in range(len(gs)):
-#         while h != 0:
-#             # lt_gi = largest_term(gs[i], [x, y, z])
-#             # lt_h = largest_term(h, [x, y, z])
-#
-#             lt_gi = largest_term(gs[i])
-#             lt_h = largest_term(h)
-#
-#             # print(largest_term(h))
-#             # print('----')
-#             # print(h)
-#             # print(gs[i])
-#             # print(lt_h)
-#             # print(lt_gi)
-#             # print(lt_gi.free_symbols)
-#             # print(lt_h.free_symbols)
-#             if set(lt_gi.free_symbols).issubset(set(lt_h.free_symbols)):
-#                 q, r = sympy.div(lt_h, lt_gi)
-#                 if r == 0:
-#                     h = sympy.expand(h - (gs[i] * q))
-#                     qs[i] = qs[i] + q
-#                 else:
-#                     break
-#             else:
-#                 break
-#     return h, qs
-
-
-def general_divide2(f, gs):
-    h = sympy.Poly(f, [x, y, z])
-    qs = [0] * len(gs)
-    for i in range(len(gs)):
-        gs[i] = sympy.Poly(gs[i], [x, y, z])
-        while h != 0:
-            lt_gi = largest_term(gs[i])
-            lt_h = largest_term(h)
-
-            if set(lt_gi.free_symbols).issubset(set(lt_h.free_symbols)):
-                q, r = sympy.div(lt_h, lt_gi)
-                if r == 0:
-                    h = h - (gs[i] * q)
-                    qs[i] = qs[i] + q
-                else:
-                    break
-            else:
+    for pair in U:
+        print('Step {}'.format(str(step)))
+        print('Pair {}, {}'.format(str(pair[0].args), str(pair[1].args)))
+        cur_s_poly = s_poly(pair[0], pair[1])
+        print('S-poly {}'.format(str(cur_s_poly.args[0])))
+        remainder = general_division_remainder(G, cur_s_poly)
+        if remainder != 0:
+            if remainder in G or -remainder in G:
                 break
-    return h, qs
+            else:
+                G.append(remainder)
+                for f in G:
+                    U.append((f, remainder))
+
+        step += 1
+    return G
 
 
-def general_divide(f, gs):
-    h = f
-    r = 0
-    qs = [0] * len(gs)
-    while h != 0:
-        # div_occurred = False
-        for i in range(len(gs)):
-            div_occurred = False
-            while not div_occurred:
-                lt_gi = sympy.LT(gs[i])
-                lt_h = sympy.LT(h)
-                # print('----')
-                # print(h)
-                # print(gs[i])
-                # print(lt_h)
-                # print(lt_gi)
-                # print(sympy.rem(lt_h, lt_gi))
-                # print(sympy.quo(lt_h, lt_gi))
-                # print('####')
-                if sympy.rem(lt_h, lt_gi) == 0:
-                    div = sympy.quo(lt_h, lt_gi)
-                    qs[i] = qs[i] + div
-                    h = sympy.simplify(h - div * gs[i])
-                    div_occurred = True
-                if not div_occurred:
-                    r = r + lt_h
-                    h = sympy.simplify(h - lt_h)
+poly1 = sympy.Poly(y * z + x ** 2 + z, [z, y, x])
+poly2 = sympy.Poly(x * y * z + x * z - y ** 3, [z, y, x])
+poly3 = sympy.Poly(x * z + y ** 2, [z, y, x])
 
-    return r, qs
+basis = groebner_basis([poly1, poly2, poly3])
 
+print('--------------------------------------------------')
+print('Result')
+for p in basis:
+    print(p.args[0])
