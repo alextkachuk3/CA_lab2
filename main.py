@@ -24,28 +24,28 @@ def s_poly(poly_first, poly_second):
 
 
 def groebner_basis(G):
-    step = 0
-    U = []
+    step = 1
+    C = []
 
     for i in range(0, len(G)):
         for j in range(0, len(G)):
             if i != j:
-                U.append((G[i], G[j]))
+                C.append((G[i], G[j]))
 
-    for pair in U:
+    for pair in C:
         print('Step {}'.format(str(step)))
-        print('Pair {}, {}'.format(str(pair[0].args), str(pair[1].args)))
+        print('Pair {}, {}'.format(str(pair[0].args[0]), str(pair[1].args[0])))
         cur_s_poly = s_poly(pair[0], pair[1])
         print('S-poly {}'.format(str(cur_s_poly.args[0])))
         remainder = general_division_remainder(G, cur_s_poly)
+        print('Remainder {}'.format(remainder.args[0]))
         if remainder != 0:
             if remainder in G or -remainder in G:
                 break
             else:
-                G.append(remainder)
                 for f in G:
-                    U.append((f, remainder))
-
+                    C.append((f, remainder))
+                G.append(remainder)
         step += 1
     return G
 
